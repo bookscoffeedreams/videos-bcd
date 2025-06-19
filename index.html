@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PurpTube - Expressive Video Platform</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #4c00ff, #a633ff);
+      color: white;
+      display: flex;
+    }
+    .sidebar {
+      width: 200px;
+      background: rgba(42, 0, 102, 0.6);
+      backdrop-filter: blur(12px);
+      padding: 1rem;
+      height: 100vh;
+      position: fixed;
+      box-shadow: 2px 0 20px rgba(0,0,0,0.3);
+    }
+    .sidebar h2 {
+      color: #fff;
+    }
+    .sidebar span {
+      color: #c58aff;
+    }
+    .sidebar nav a {
+      display: block;
+      color: #ddd;
+      margin: 1rem 0;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+    .sidebar nav a:hover {
+      color: #fff;
+      transform: translateX(5px);
+    }
+    .main {
+      margin-left: 200px;
+      width: calc(100% - 200px);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(60, 0, 122, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+    }
+    .search {
+      width: 50%;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 50px;
+      outline: none;
+    }
+    .auth {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    #toggle-theme {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      padding: 2rem;
+    }
+    .video-card {
+      background: rgba(74, 0, 153, 0.7);
+      border-radius: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s ease;
+    }
+    .video-card:hover {
+      transform: scale(1.03);
+    }
+    .video-card img {
+      width: 100%;
+    }
+    .video-info {
+      padding: 1rem;
+    }
+    .video-info h3 {
+      margin: 0.5rem 0;
+    }
+    .like-btn {
+      background-color: #6a00cc;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+      margin-top: 0.5rem;
+    }
+    .like-count {
+      margin-left: 0.5rem;
+      font-size: 0.9rem;
+      color: #e0c8ff;
+    }
+    .comment-box {
+      margin-top: 1rem;
+    }
+    .comment-box input {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+    }
+    .tags {
+      margin-top: 0.5rem;
+      color: #d9b3ff;
+      font-size: 0.9rem;
+    }
+    .comment-list {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+    }
+    .comment-list .comment {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.3rem;
+    }
+    .comment-list .comment:last-child {
+      border-bottom: none;
+    }
+    .comment-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #aaa;
+    }
+    .comment-content {
+      flex: 1;
+    }
+    .comment-meta {
+      color: #ccc;
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Purp<span>Tube</span></h2>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Trending</a>
+      <a href="#">Categories</a>
+      <a href="#">Library</a>
+    </nav>
+  </div>
+  <div class="main">
+    <header>
+      <input type="text" class="search" placeholder="Search videos..." />
+      <button id="toggle-theme">🌓</button>
+      <div class="auth">
+        <button id="login-btn">Sign in with Google</button>
+        <span id="user-name"></span>
+      </div>
+    </header>
+    <section class="video-grid" id="video-grid">
+      <div class="video-card" data-id="video1">
+        <img src="https://via.placeholder.com/350x200?text=Video+1" alt="Video" />
+        <div class="video-info">
+          <h3>Awesome Purple Video</h3>
+          <p>By Anshuman</p>
+          <button class="like-btn">👍 Like <span class="like-count">0</span></button>
+          <div class="comment-box">
+            <input type="text" class="comment-input" placeholder="Add a comment..." />
+          </div>
+          <div class="comment-list" id="comment-list"></div>
+          <div class="tags">#cool #purple #fun</div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyDEUzsBjnonBtWswPkQp_tnicPl5XO6MoY",
+  authDomain: "bcd-content-videos.firebaseapp.com",
+  projectId: "bcd-content-videos",
+  storageBucket: "bcd-content-videos.firebasestorage.app",
+  messagingSenderId: "355915350320",
+  appId: "1:355915350320:web:0b1e1883ae84395e0788f5",
+  measurementId: "G-HBG894RRM0"
+};
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    const loginBtn = document.getElementById("login-btn");
+    const userNameSpan = document.getElementById("user-name");
+    let currentUser = null;
+
+    loginBtn.addEventListener("click", () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then((result) => {
+          currentUser = result.user;
+          userNameSpan.textContent = currentUser.displayName;
+          loginBtn.style.display = 'none';
+        })
+        .catch((error) => {
+          console.error("Google Sign-In Error:", error);
+          alert("Sign-in failed. Check console for details.");
+        });
+    });
+
+    const toggleBtn = document.getElementById("toggle-theme");
+    toggleBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+    });
+
+    gsap.from(".sidebar", { duration: 1, x: -200, opacity: 0 });
+    gsap.from(".video-card", { duration: 1, y: 100, opacity: 0, stagger: 0.2 });
+
+    const videoCard = document.querySelector('.video-card');
+    const likeBtn = videoCard.querySelector('.like-btn');
+    const likeCountSpan = likeBtn.querySelector('.like-count');
+    const commentInput = videoCard.querySelector('.comment-input');
+    const commentList = videoCard.querySelector('#comment-list');
+    const videoId = videoCard.dataset.id;
+
+    likeBtn.addEventListener('click', () => {
+      if (!currentUser) return alert("Please login to like videos.");
+      const likeRef = db.collection('videos').doc(videoId);
+      likeRef.get().then(doc => {
+        const data = doc.exists ? doc.data() : { likes: 0 };
+        likeRef.set({ likes: (data.likes || 0) + 1 }, { merge: true });
+      });
+    });
+
+    commentInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && currentUser) {
+        const comment = e.target.value.trim();
+        if (!comment) return;
+        db.collection('videos').doc(videoId).collection('comments').add({
+          user: currentUser.displayName,
+          avatar: currentUser.photoURL,
+          text: comment,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        e.target.value = '';
+      }
+    });
+
+    function renderComment(doc) {
+      const data = doc.data();
+      const div = document.createElement('div');
+      div.classList.add('comment');
+      const time = data.timestamp?.toDate().toLocaleString() || "";
+      div.innerHTML = `
+        <img class="comment-avatar" src="${data.avatar || 'https://via.placeholder.com/30'}" alt="avatar" />
+        <div class="comment-content">
+          <strong>${data.user}</strong><br/>
+          ${data.text}
+          <div class="comment-meta">${time}</div>
+        </div>
+      `;
+      commentList.appendChild(div);
+    }
+
+    db.collection('videos').doc(videoId).onSnapshot(doc => {
+      if (doc.exists) {
+        likeCountSpan.textContent = doc.data().likes || 0;
+      }
+    });
+
+    db.collection('videos').doc(videoId).collection('comments').orderBy('timestamp')
+      .onSnapshot(snapshot => {
+        commentList.innerHTML = '';
+        snapshot.forEach(renderComment);
+      });
+  </script>
+</body>
+</html>
